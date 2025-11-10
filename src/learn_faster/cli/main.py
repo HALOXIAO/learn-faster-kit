@@ -83,16 +83,16 @@ def create_or_update_settings(claude_dir: Path) -> None:
     default_settings = {
         "permissions": {
             "allow": [
-                "Bash(python3 .learning/scripts/*)",
-                "Bash(ls *)",
+                "Bash(python3 .learning/scripts/:*)",
+                "Bash(ls:*)",
                 "Read(.learning/**)",
                 "Write(.learning/**)",
                 "Write(**/*.md)",
                 "Read(**/*.md)"
             ],
             "deny": [
-                "Bash(rm -rf *)",
-                "Bash(curl *)",
+                "Bash(rm:*)",
+                "Bash(curl:*)",
                 "Read(.env)",
                 "Read(.env.*)",
                 "Write(.env)",
