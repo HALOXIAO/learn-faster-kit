@@ -39,6 +39,10 @@ jobs:
           curl -LsSf https://astral.sh/uv/install.sh | sh
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
+      - name: Add requests dependency
+        run: |
+          uv add requests
+
       - name: Get current version
         id: current_version
         run: |
