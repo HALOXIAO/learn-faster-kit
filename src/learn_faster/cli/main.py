@@ -65,6 +65,11 @@ def print_dim(msg: str) -> None:
     print(f"{Colors.DIM}{msg}{Colors.RESET}")
 
 
+def print_error(msg: str) -> None:
+    """Print error message in red."""
+    print(f"{Colors.RED}✗{Colors.RESET} {msg}")
+
+
 def get_templates_dir() -> Path:
     """Get the templates directory from the installed package."""
     return Path(__file__).parent.parent / "templates"
@@ -76,7 +81,6 @@ def create_or_update_settings(claude_dir: Path) -> None:
 
     # Default settings for Learn FASTER
     default_settings = {
-        "outputStyle": "learn-faster",
         "permissions": {
             "allow": [
                 "Bash(python3 .learning/scripts/*)",
@@ -95,9 +99,6 @@ def create_or_update_settings(claude_dir: Path) -> None:
             settings = json.load(f)
 
         # Merge with defaults
-        if "outputStyle" not in settings:
-            settings["outputStyle"] = "learn-faster"
-
         if "permissions" not in settings:
             settings["permissions"] = default_settings["permissions"]
         else:
@@ -118,6 +119,20 @@ def create_or_update_settings(claude_dir: Path) -> None:
     # Write settings
     with open(settings_file, "w") as f:
         json.dump(settings, f, indent=2)
+
+
+def check_initialization() -> bool:
+    """Check if project has been initialized."""
+    config_path = Path.cwd() / ".learning" / "config.json"
+    if not config_path.exists():
+        return False
+
+    try:
+        with open(config_path, "r") as f:
+            config = json.load(f)
+        return config.get("initialized", False)
+    except:
+        return False
 
 
 def init_project() -> None:
@@ -149,15 +164,6 @@ def init_project() -> None:
             shutil.copy2(file, agents_dest / file.name)
             print_success(f"Copied agent: {file.name}")
 
-    # Copy output styles
-    styles_dest = claude_dir / "output-styles"
-    styles_dest.mkdir(exist_ok=True)
-    styles_src = templates_dir / "output_styles"
-    if styles_src.exists():
-        for file in styles_src.glob("*.md"):
-            shutil.copy2(file, styles_dest / file.name)
-            print_success(f"Copied output style: {file.name}")
-
     # Copy commands
     commands_dest = claude_dir / "commands"
     commands_dest.mkdir(exist_ok=True)
@@ -174,8 +180,9 @@ def init_project() -> None:
     learning_dir = cwd / ".learning"
     learning_dir.mkdir(exist_ok=True)
 
-    # Create config.json with macOS reminders preference
+    # Create config.json with initialization flag
     config = {
+        "initialized": True,
         "macos_reminders_enabled": macos_reminders
     }
     config_path = learning_dir / "config.json"
@@ -201,50 +208,113 @@ def init_project() -> None:
             shutil.copy2(file, references_dest / file.name)
             print_success(f"Copied reference: {file.name}")
 
-    # Copy CLAUDE.md to project root
-    claude_md_src = templates_dir / "CLAUDE.md"
+    # Copy instructions.md to project root as CLAUDE.md
+    instructions_src = templates_dir / "instructions.md"
     claude_md_dest = cwd / "CLAUDE.md"
-    if claude_md_src.exists() and not claude_md_dest.exists():
-        shutil.copy2(claude_md_src, claude_md_dest)
-        print_success("Copied CLAUDE.md to project root")
+    if instructions_src.exists() and not claude_md_dest.exists():
+        shutil.copy2(instructions_src, claude_md_dest)
+        print_success("Copied instructions to CLAUDE.md in project root")
     elif claude_md_dest.exists():
         print_warning("CLAUDE.md already exists, skipping")
 
     print(f"\n{Colors.GREEN}{Colors.BOLD}Initialization complete!{Colors.RESET}\n")
 
-    print_header("How to use:")
-    print_dim("  1. Restart Claude Code to load new commands and output style")
-    print_dim("  2. Start learning with: " + f"{Colors.CYAN}/learn \"Your Topic\"{Colors.RESET}")
-    print_dim("  3. Available commands:")
-    print(f"     {Colors.CYAN}/learn [topic]{Colors.RESET}    - Initialize or continue learning")
-    print(f"     {Colors.CYAN}/review{Colors.RESET}           - Spaced repetition review session")
-    print(f"     {Colors.CYAN}/progress{Colors.RESET}         - Show detailed progress report")
+    print_header("Available commands in Claude Code:")
+    print(f"  {Colors.CYAN}/learn [topic]{Colors.RESET}    - Initialize or continue learning")
+    print(f"  {Colors.CYAN}/review{Colors.RESET}           - Spaced repetition review session")
+    print(f"  {Colors.CYAN}/progress{Colors.RESET}         - Show detailed progress report")
     print()
-    print_info("The 'learn-faster' output style is auto-activated for coaching mode.")
-    print()
+
+
+def launch_coach() -> None:
+    """Launch Claude Code with learn-faster system prompt."""
+    import subprocess
+
+    # Get the path to the system prompt template
+    templates_dir = Path(__file__).parent.parent / "templates"
+    system_prompt_path = templates_dir / "system_prompts" / "learn-faster.md"
+
+    if not system_prompt_path.exists():
+        print_error("Error: learn-faster system prompt not found")
+        print_dim(f"Expected at: {system_prompt_path}")
+        sys.exit(1)
+
+    # Read the system prompt content (skip frontmatter)
+    with open(system_prompt_path, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+
+    # Skip frontmatter (between --- lines)
+    in_frontmatter = False
+    content_lines = []
+    for line in lines:
+        if line.strip() == "---":
+            if not in_frontmatter:
+                in_frontmatter = True
+                continue
+            else:
+                in_frontmatter = False
+                continue
+        if not in_frontmatter:
+            content_lines.append(line)
+
+    system_prompt = "".join(content_lines).strip()
+
+    # Launch Claude Code with the system prompt
+    print_info("Launching Claude Code in learning coach mode...")
+    print_dim("(Using FASTER framework system prompt)\n")
+
+    try:
+        subprocess.run(
+            ["claude", "--system-prompt", system_prompt],
+            check=False
+        )
+    except FileNotFoundError:
+        print_error("Error: 'claude' command not found")
+        print_dim("Make sure Claude Code CLI is installed and in your PATH")
+        print_dim("Install from: https://claude.ai/download")
+        sys.exit(1)
 
 
 def main() -> None:
     """Main CLI entry point."""
-    if len(sys.argv) < 2:
-        print("Learn FASTER - Accelerate learning with FASTER framework\n")
-        print("Usage:")
-        print("  uvx learn-faster init    Initialize in current project")
+    # Check for explicit commands
+    if len(sys.argv) >= 2:
+        command = sys.argv[1]
+
+        if command == "init":
+            init_project()
+            return
+        elif command == "version":
+            from learn_faster import __version__
+            print(f"learn-faster version {__version__}")
+            return
+        elif command in ["help", "--help", "-h"]:
+            print("Learn FASTER - Accelerate learning with FASTER framework\n")
+            print("Usage:")
+            print("  learn-faster           Auto-init and launch Claude Code in coach mode")
+            print("  learn-faster init      Force re-initialization")
+            print("  learn-faster version   Show version")
+            print()
+            print("For more info: https://github.com/cheukyin175/learn-faster-kit")
+            return
+        else:
+            print_error(f"Unknown command: {command}")
+            print_dim("Run 'learn-faster --help' for usage")
+            sys.exit(1)
+
+    # Default behavior: check init, then launch
+    if not check_initialization():
+        print_info("First-time setup detected. Initializing...")
         print()
-        print("For more info: https://github.com/cheukyin175/learn-faster-kit")
-        sys.exit(0)
-
-    command = sys.argv[1]
-
-    if command == "init":
         init_project()
-    elif command == "version":
-        from learn_faster import __version__
-        print(f"learn-faster version {__version__}")
+        print()
+        print_header("Launching Claude Code with FASTER framework...")
+        print()
     else:
-        print(f"Unknown command: {command}")
-        print("Available commands: init, version")
-        sys.exit(1)
+        print_info("Launching Claude Code in learning coach mode...")
+        print()
+
+    launch_coach()
 
 
 if __name__ == "__main__":

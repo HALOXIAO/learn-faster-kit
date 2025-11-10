@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Initialize a new learning topic with structured syllabus and tracking files.
-On first initialization, copies scripts and CLAUDE.md to .learning/ directory.
+On first initialization, copies scripts to .learning/ directory.
 """
 
 import os

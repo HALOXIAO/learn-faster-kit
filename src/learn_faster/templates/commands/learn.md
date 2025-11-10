@@ -22,6 +22,7 @@ Initialize learning for the specified topic using the FASTER framework.
 **If `.learning/` doesn't exist:**
 
 1. **Gather learning preferences** with `AskUserQuestion`:
+   <example>
 
 ```json
 [
@@ -74,6 +75,8 @@ Initialize learning for the specified topic using the FASTER framework.
 ]
 ```
 
+</example>
+
 2. Run: `python3 .learning/scripts/init_learning.py "[topic name]" .learning`
 3. Parse JSON output and follow `llm_directive`
 4. **READ** `.learning/<topic-slug>/syllabus.md` to see the template structure
@@ -87,14 +90,7 @@ Initialize learning for the specified topic using the FASTER framework.
 -   3-4 Phases with specific concepts + 🔨 hands-on projects
 -   Checkboxes `- [ ]` for tracking progress
 
-**After generation:**
-
--   Show first 2-3 learning items from Phase 1
--   Ask: "Ready to start with [first concept]?"
--   Suggest: "30min daily > 3hr weekly!"
-
 **Important:**
 
--   Activate `/style learn-faster` for optimal coaching
 -   Generate comprehensive syllabi (not minimal)
 -   Include hands-on practice in every phase

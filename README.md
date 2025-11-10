@@ -1,8 +1,8 @@
 # Learn FASTER
 
-> Accelerate learning with the FASTER framework - spaced repetition, progress tracking, and hands-on practice using AI agent.
+> Accelerate learning with the FASTER framework - spaced repetition, progress tracking, and hands-on practice using AI coaching.
 
-**[Claude Code](https://claude.com/claude-code) Only** - This tool currently integrates with Claude Code's commands, agents, and output styles system.
+**[Claude Code](https://claude.com/claude-code) Only** - This tool launches Claude Code with FASTER framework coaching mode.
 
 ## What is FASTER?
 
@@ -38,33 +38,37 @@ Install once and use across all projects:
 uv tool install learn-faster --from git+https://github.com/cheukyin175/learn-faster-kit.git
 ```
 
-Then in any project directory:
+Then in any project directory, simply run:
 
 ```bash
-learn-faster init
+learn-faster
 ```
+
+This will auto-initialize on first run and launch Claude Code with FASTER coaching mode.
 
 ### Option 2: One-Time Use
 
 Run directly without installation:
 
 ```bash
-uvx --from git+https://github.com/cheukyin175/learn-faster-kit.git learn-faster init
+uvx --from git+https://github.com/cheukyin175/learn-faster-kit.git learn-faster
 ```
 
 ### What Gets Installed
+
+On first run, learn-faster creates:
 
 ```
 your-project/
 ├── .claude/
 │   ├── agents/practice-creator.md
-│   ├── output-styles/learn-faster.md
 │   ├── commands/
 │   │   ├── learn.md
 │   │   ├── review.md
 │   │   └── progress.md
 │   └── settings.local.json
 ├── .learning/
+│   ├── config.json (tracks initialization)
 │   ├── scripts/
 │   │   ├── init_learning.py
 │   │   ├── log_progress.py
@@ -76,23 +80,38 @@ your-project/
 
 ## Quick Start
 
-1. **Install in your project**
+1. **Install the tool (one time)**
 
     ```bash
-    cd your-project
-    learn-faster init
+    uv tool install learn-faster --from git+https://github.com/cheukyin175/learn-faster-kit.git
     ```
 
-2. **Start Claude Code**
+2. **Navigate to your project and run**
 
-3. **Start learning**
     ```bash
-    /learn Golang
+    cd your-learning-project
+    learn-faster
     ```
 
-## Commands
+    This will:
+    - Initialize the project structure (first time only)
+    - Launch Claude Code with FASTER coaching mode
+    - You're ready to start learning!
 
--   `/learn [topic]` - Initialize or continue learning
+3. **Start learning with the `/learn` command**
+    ```bash
+    /learn "Golang fundamentals"
+    ```
+
+## CLI Commands
+
+-   `learn-faster` - Auto-init and launch Claude Code with coaching mode
+-   `learn-faster init` - Force re-initialization
+-   `learn-faster version` - Show version
+
+## Commands in Claude Code
+
+-   `/learn [topic]` - Initialize or continue learning a topic
 -   `/review` - Conduct spaced repetition review session
 -   `/progress` - Show detailed progress report
 
