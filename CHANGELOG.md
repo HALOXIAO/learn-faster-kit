@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-11-11
+
+### Features
+
+- **Personalized Learning Modes**: Added four distinct learning modes with tailored experiences
+  - **Balanced Mode**: Mix of theory, practice, and application (default)
+  - **Exam-Oriented Mode**: Focus on recall, practice tests, and certification prep
+  - **Theory-Focused Mode**: Deep conceptual understanding and mental models
+  - **Practical Mode**: Build projects immediately, learn by doing
+- Interactive arrow-key mode selection during initialization
+- Mode-specific system prompts for different coaching styles
+- Custom `/learn` commands tailored to each mode's learning approach
+- Mode persistence in `.learning/config.json`
+- Exam mode includes specialized practice-creator agent for tests and quizzes
+
+### Changed
+
+- Reorganized template structure into `modes/` directory
+- Mode-specific coaching personalities and teaching approaches
+- Each mode has unique syllabus generation strategy
+- Removed single-purpose templates in favor of mode-specific variants
+
+### Added
+
+- `inquirer` dependency for interactive CLI prompts
+- Four complete system prompt variations (one per mode)
+- Four custom `/learn` command implementations
+- Exam-specific practice-creator agent for test preparation
+
 ## [1.0.0] - 2025-11-11
 
 ### Features
