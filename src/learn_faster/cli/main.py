@@ -8,6 +8,8 @@ Usage:
 
 import sys
 import shutil
+import platform
+import inquirer
 import json
 from pathlib import Path
 from typing import Dict, Any
@@ -162,13 +164,41 @@ def check_initialization() -> bool:
 
 def init_project() -> None:
     """Initialize Learn FASTER in the current project."""
-    import platform
+    
 
     cwd = Path.cwd()
     templates_dir = get_templates_dir()
 
     print(BANNER)
     print_header("\nInitializing Learn FASTER in current project...\n")
+
+    # Ask for learning mode selection
+    
+
+    learning_mode_question = [
+        inquirer.List(
+            'mode',
+            message="Choose your learning mode",
+            choices=[
+                ('Balanced         - Mix of theory, practice, and application', 'balanced'),
+                ('Exam-Oriented   - Focus on recall, practice tests, and certification prep', 'exam'),
+                ('Theory-Focused   - Deep conceptual understanding and mental models', 'theory'),
+                ('Practical        - Build projects immediately, learn by doing', 'practical'),
+            ],
+            default='balanced',
+        ),
+    ]
+
+    mode_answer = inquirer.prompt(learning_mode_question)
+    learning_mode = mode_answer['mode'] if mode_answer else 'balanced'
+
+    mode_names = {
+        "exam": "Exam-Oriented",
+        "theory": "Theory-Focused",
+        "practical": "Practical",
+        "balanced": "Balanced"
+    }
+    print_success(f"Selected: {mode_names[learning_mode]} mode\n")
 
     # Ask about macOS Reminders (only on macOS)
     macos_reminders = False
@@ -180,19 +210,24 @@ def init_project() -> None:
     claude_dir = cwd / ".claude"
     claude_dir.mkdir(exist_ok=True)
 
-    # Copy agents
+    # Copy mode-specific agents and commands
+    mode_templates_dir = templates_dir / "modes" / learning_mode
+
+    # Copy agents for selected mode
     agents_dest = claude_dir / "agents"
     agents_dest.mkdir(exist_ok=True)
-    agents_src = templates_dir / "agents"
+    agents_src = mode_templates_dir / "agents"
+
     if agents_src.exists():
         for file in agents_src.glob("*.md"):
             shutil.copy2(file, agents_dest / file.name)
             print_success(f"Copied agent: {file.name}")
 
-    # Copy commands
+    # Copy commands for selected mode
     commands_dest = claude_dir / "commands"
     commands_dest.mkdir(exist_ok=True)
-    commands_src = templates_dir / "commands"
+    commands_src = mode_templates_dir / "commands"
+
     if commands_src.exists():
         for file in commands_src.glob("*.md"):
             shutil.copy2(file, commands_dest / file.name)
@@ -208,12 +243,13 @@ def init_project() -> None:
     # Create config.json with initialization flag
     config = {
         "initialized": True,
+        "learning_mode": learning_mode,
         "macos_reminders_enabled": macos_reminders
     }
     config_path = learning_dir / "config.json"
     with open(config_path, "w") as f:
         json.dump(config, f, indent=2)
-    print_success(f"Created config.json (macOS Reminders: {'enabled' if macos_reminders else 'disabled'})")
+    print_success(f"Created config.json (Mode: {mode_names[learning_mode]}, macOS Reminders: {'enabled' if macos_reminders else 'disabled'})")
 
     # Copy scripts
     scripts_dest = learning_dir / "scripts"
@@ -255,12 +291,23 @@ def launch_coach(auto_review: bool = False) -> None:
     """Launch Claude Code with learn-faster system prompt."""
     import subprocess
 
+    # Get the learning mode from config
+    config_path = Path.cwd() / ".learning" / "config.json"
+    learning_mode = "balanced"  # default
+    if config_path.exists():
+        try:
+            with open(config_path, "r") as f:
+                config = json.load(f)
+                learning_mode = config.get("learning_mode", "balanced")
+        except:
+            pass
+
     # Get the path to the system prompt template
     templates_dir = Path(__file__).parent.parent / "templates"
-    system_prompt_path = templates_dir / "system_prompts" / "learn-faster.md"
+    system_prompt_path = templates_dir / "modes" / learning_mode / "system_prompts" / "learn-faster.md"
 
     if not system_prompt_path.exists():
-        print_error("Error: learn-faster system prompt not found")
+        print_error(f"Error: System prompt for '{learning_mode}' mode not found")
         print_dim(f"Expected at: {system_prompt_path}")
         sys.exit(1)
 
