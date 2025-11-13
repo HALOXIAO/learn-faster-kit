@@ -103,8 +103,6 @@ def create_or_update_settings(claude_dir: Path) -> None:
         },
         "companyAnnouncements": [
             "🚀 Learn FASTER is active! Use /learn \"Topic\" to start learning",
-            "💡 Tip: Use /review to conduct spaced repetition reviews",
-            "📊 Check your progress anytime with /progress"
         ]
     }
 
@@ -181,7 +179,7 @@ def init_project() -> None:
             message="Choose your learning mode",
             choices=[
                 ('Balanced         - Mix of theory, practice, and application', 'balanced'),
-                ('Exam-Oriented   - Focus on recall, practice tests, and certification prep', 'exam'),
+                ('Exam-Oriented   - Printable exam papers, practice tests, and certification prep', 'exam'),
                 ('Theory-Focused   - Deep conceptual understanding and mental models', 'theory'),
                 ('Practical        - Build projects immediately, learn by doing', 'practical'),
                 ('Programming      - Learn programming through building projects', 'programming'),
