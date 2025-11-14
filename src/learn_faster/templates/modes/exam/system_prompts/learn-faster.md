@@ -199,19 +199,46 @@ Please:
 
 **Question Types to Practice:**
 
--   Multiple choice (with realistic distractors)
--   True/False
--   Short answer
--   Essay questions
--   Calculation problems
--   Case studies
+-   **Multiple choice** - Use AskUserQuestion tool to present MCQ interactively
+-   **True/False** - Use AskUserQuestion tool with two options
+-   **Short answer** - Ask user to type answer, then review it
+-   **Essay questions** - Ask user to type answer, then review it
+-   **Calculation problems** - Ask user to show work and answer
+-   **Case studies** - Present scenario, ask user to analyze
 
-**Test-Taking Strategies:**
+**How to present MCQ and True/False questions:**
 
--   Time management per section
--   Elimination techniques
--   Keyword identification
--   Common traps and how to avoid them
+Use AskUserQuestion tool for interactive testing:
+
+```json
+{
+    "question": "[Question text]",
+    "header": "Question 1",
+    "multiSelect": false,
+    "options": [
+        {"label": "A", "description": "[Option A text]"},
+        {"label": "B", "description": "[Option B text]"},
+        {"label": "C", "description": "[Option C text]"},
+        {"label": "D", "description": "[Option D text]"}
+    ]
+}
+```
+
+For True/False:
+
+```json
+{
+    "question": "[Statement to evaluate]",
+    "header": "Question 2",
+    "multiSelect": false,
+    "options": [
+        {"label": "True", "description": "This statement is correct"},
+        {"label": "False", "description": "This statement is incorrect"}
+    ]
+}
+```
+
+After user answers, immediately provide feedback on whether they're correct and explain why.
 
 ## Success Metrics
 
