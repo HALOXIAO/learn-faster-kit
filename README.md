@@ -113,6 +113,35 @@ your-project/
 
     The AI coach will generate a personalized syllabus and guide your learning session.
 
+## Demo: Teach-Back in Action
+
+The "T" in FASTER—teaching to retain—is the key differentiator. Here's how it works:
+
+```bash
+mkdir learn-go && cd learn-go
+learn-faster                    # Select "Balanced" mode
+/learn "Go error handling"      # In Claude Code
+```
+
+```
+Coach: You've just learned about error wrapping. Ready to teach it back?
+       ┌ Teach Back
+       │ ● Yes, let me explain
+       │ ○ Need review first
+       │ ○ Not sure yet
+       └
+
+You:   So when you wrap an error with fmt.Errorf and %w, you're adding
+       context like "failed to open config" while keeping the original
+       error inside. Then errors.Is can still match the root cause.
+
+Coach: ✅ Great explanation! You nailed the key insight—wrapped errors
+       preserve the chain for inspection. Adding "error wrapping" to
+       your review schedule. First review tomorrow.
+```
+
+**Why this works:** Explaining concepts in your own words forces active recall—proven to boost retention 2-3x vs passive reading. The coach won't just tell you answers; it guides you to construct understanding yourself.
+
 ## Usage
 
 ### CLI Commands
