@@ -6,7 +6,7 @@
 
 > AI-powered learning coach that accelerates mastery through spaced repetition, personalized syllabi, and active practice.
 
-**Built for [Claude Code](https://claude.com/claude-code)** - Integrates AI coaching directly into your development environment.
+**Supports [Claude Code](https://claude.com/claude-code) and [CodeBuddy](https://codebuddy.tencent.com/)** - Integrates AI coaching directly into your development environment.
 
 ## Why Learn FASTER?
 
@@ -50,7 +50,7 @@ Then in any project directory, simply run:
 learn-faster
 ```
 
-This will auto-initialize on first run and launch Claude Code with FASTER coaching mode.
+This will auto-initialize on first run and launch your chosen IDE with FASTER coaching mode.
 
 ### Option 2: One-Time Use
 
@@ -62,7 +62,9 @@ uvx --from git+https://github.com/cheukyin175/learn-faster-kit.git learn-faster
 
 ### What Gets Installed
 
-On first run, learn-faster creates:
+On first run, learn-faster prompts you to choose your IDE and creates the appropriate structure:
+
+#### For Claude Code (.claude)
 
 ```
 your-project/
@@ -74,7 +76,7 @@ your-project/
 │   │   └── progress.md
 │   └── settings.local.json
 ├── .learning/
-│   ├── config.json (tracks initialization)
+│   ├── config.json
 │   ├── scripts/
 │   │   ├── init_learning.py
 │   │   ├── log_progress.py
@@ -82,6 +84,27 @@ your-project/
 │   │   └── generate_syllabus.py
 │   └── references/faster_framework.md
 └── CLAUDE.md
+```
+
+#### For CodeBuddy (.codebuddy)
+
+```
+your-project/
+├── .codebuddy/
+│   ├── agents/practice-creator.md
+│   └── rules/
+│       ├── learn.mdc
+│       ├── review.mdc
+│       └── progress.mdc
+├── .learning/
+│   ├── config.json
+│   ├── scripts/
+│   │   ├── init_learning.py
+│   │   ├── log_progress.py
+│   │   ├── review_scheduler.py
+│   │   └── generate_syllabus.py
+│   └── references/faster_framework.md
+└── CODEBUDDY.md
 ```
 
 ## Quick Start
@@ -101,15 +124,20 @@ your-project/
 
     First run will:
 
+    - Prompt you to select your IDE (Claude Code or CodeBuddy)
     - Prompt you to select a learning mode
     - Initialize the project structure
-    - Launch Claude Code with FASTER coaching enabled
+    - Launch your IDE with FASTER coaching enabled
 
 3. **Start learning**
 
+    **Claude Code:**
     ```bash
     /learn "Golang fundamentals"
     ```
+
+    **CodeBuddy:**
+    Use the rules panel to activate `learn.mdc` and start learning.
 
     The AI coach will generate a personalized syllabus and guide your learning session.
 
@@ -146,8 +174,8 @@ Coach: ✅ Great explanation! You nailed the key insight—wrapped errors
 
 ### CLI Commands
 
--   `learn-faster` - Launch Claude Code with FASTER coaching (auto-initializes on first run)
--   `learn-faster init` - Force re-initialization or switch learning modes
+-   `learn-faster` - Launch with FASTER coaching (auto-initializes on first run)
+-   `learn-faster init` - Force re-initialization or switch IDE/learning modes
 -   `learn-faster version` - Show current version
 
 ### Claude Code Slash Commands
@@ -157,6 +185,14 @@ Once Claude Code is running, use these commands:
 -   `/learn [topic]` - Start or continue learning a topic with personalized syllabus
 -   `/review` - Spaced repetition review session for topics you've learned
 -   `/progress` - View detailed progress report and learning statistics
+
+### CodeBuddy Rules
+
+In CodeBuddy, use the rules panel to access:
+
+-   `learn.mdc` - Start or continue learning a topic
+-   `review.mdc` - Spaced repetition review session
+-   `progress.mdc` - View detailed progress report
 
 ## Learning Modes
 
@@ -198,7 +234,7 @@ Learn FASTER is ideal for:
 ## Requirements
 
 -   Python 3.12+
--   [Claude Code](https://claude.com/claude-code)
+-   [Claude Code](https://claude.com/claude-code) or [CodeBuddy](https://codebuddy.tencent.com/)
 -   [uv](https://docs.astral.sh/uv/) package manager
 
 ## Contributing

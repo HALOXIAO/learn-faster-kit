@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Learn FASTER CLI - One-time installer for Claude Code learning system.
+Learn FASTER CLI - One-time installer for Claude Code / CodeBuddy learning system.
 
 Usage:
     uvx learn-faster init
@@ -11,8 +11,9 @@ import shutil
 import platform
 import inquirer
 import json
+from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 
 # ANSI color codes
@@ -146,18 +147,82 @@ def create_or_update_settings(claude_dir: Path) -> None:
         json.dump(settings, f, indent=2)
 
 
-def check_initialization() -> bool:
-    """Check if project has been initialized."""
+def convert_agent_to_codebuddy(source_file: Path, dest_file: Path) -> None:
+    """Convert Claude Code agent format to CodeBuddy format with frontmatter."""
+    with open(source_file, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # Extract name from filename (e.g., practice-creator.md -> Practice Creator)
+    name = source_file.stem.replace("-", " ").title()
+
+    # Check if already has frontmatter
+    if content.startswith("---"):
+        # Already has frontmatter, just copy
+        shutil.copy2(source_file, dest_file)
+        return
+
+    # Add CodeBuddy frontmatter
+    frontmatter = f"""---
+name: {name}
+description: Learn FASTER - {name}
+model: claude-sonnet-4-20250514
+tools: list_files, search_file, search_content, read_file, read_lints, replace_in_file, write_to_file, execute_command, create_rule, delete_files
+agentMode: agentic
+enabled: true
+enabledAutoRun: true
+---
+"""
+    with open(dest_file, "w", encoding="utf-8") as f:
+        f.write(frontmatter + content)
+
+
+def convert_command_to_rule(source_file: Path, dest_file: Path) -> None:
+    """Convert Claude Code command format to CodeBuddy rule (.mdc) format."""
+    with open(source_file, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # Extract description from first line or filename
+    lines = content.strip().split("\n")
+    description = ""
+    if lines and lines[0].startswith("#"):
+        description = lines[0].lstrip("#").strip()
+    else:
+        description = source_file.stem.replace("-", " ").title()
+
+    # Check if already has frontmatter
+    if content.startswith("---"):
+        # Extract content after frontmatter
+        parts = content.split("---", 2)
+        if len(parts) >= 3:
+            content = parts[2].strip()
+
+    # Add CodeBuddy rule frontmatter
+    timestamp = datetime.now().isoformat(timespec="milliseconds") + "Z"
+    frontmatter = f"""---
+description: {description}
+alwaysApply: false
+enabled: true
+updatedAt: {timestamp}
+provider: learn-faster
+---
+
+"""
+    with open(dest_file, "w", encoding="utf-8") as f:
+        f.write(frontmatter + content)
+
+
+def check_initialization() -> tuple[bool, Optional[str]]:
+    """Check if project has been initialized and return IDE type."""
     config_path = Path.cwd() / ".learning" / "config.json"
     if not config_path.exists():
-        return False
+        return False, None
 
     try:
         with open(config_path, "r") as f:
             config = json.load(f)
-        return config.get("initialized", False)
+        return config.get("initialized", False), config.get("ide", "claude")
     except:
-        return False
+        return False, None
 
 
 def init_project() -> None:
@@ -169,6 +234,28 @@ def init_project() -> None:
 
     print(BANNER)
     print_header("\nInitializing Learn FASTER in current project...\n")
+
+    # Ask for IDE selection
+    ide_question = [
+        inquirer.List(
+            'ide',
+            message="Choose your IDE/AI assistant",
+            choices=[
+                ('Claude Code      - Anthropic Claude Code CLI', 'claude'),
+                ('CodeBuddy        - Tencent CodeBuddy IDE', 'codebuddy'),
+            ],
+            default='claude',
+        ),
+    ]
+
+    ide_answer = inquirer.prompt(ide_question)
+    ide_choice = ide_answer['ide'] if ide_answer else 'claude'
+
+    ide_names = {
+        "claude": "Claude Code",
+        "codebuddy": "CodeBuddy"
+    }
+    print_success(f"Selected: {ide_names[ide_choice]}\n")
 
     # Ask for learning mode selection
     
@@ -206,35 +293,82 @@ def init_project() -> None:
         response = input(f"{Colors.CYAN}Enable macOS Reminders for review notifications? (y/n):{Colors.RESET} ").strip().lower()
         macos_reminders = response in ['y', 'yes']
 
-    # Create .claude directory structure
-    claude_dir = cwd / ".claude"
-    claude_dir.mkdir(exist_ok=True)
-
-    # Copy mode-specific agents and commands
+    # Copy mode-specific agents and commands based on IDE choice
     mode_templates_dir = templates_dir / "modes" / learning_mode
 
-    # Copy agents for selected mode
-    agents_dest = claude_dir / "agents"
-    agents_dest.mkdir(exist_ok=True)
-    agents_src = mode_templates_dir / "agents"
+    if ide_choice == "claude":
+        # Create .claude directory structure
+        ide_dir = cwd / ".claude"
+        ide_dir.mkdir(exist_ok=True)
 
-    if agents_src.exists():
-        for file in agents_src.glob("*.md"):
-            shutil.copy2(file, agents_dest / file.name)
-            print_success(f"Copied agent: {file.name}")
+        # Copy agents for selected mode
+        agents_dest = ide_dir / "agents"
+        agents_dest.mkdir(exist_ok=True)
+        agents_src = mode_templates_dir / "agents"
 
-    # Copy commands for selected mode
-    commands_dest = claude_dir / "commands"
-    commands_dest.mkdir(exist_ok=True)
-    commands_src = mode_templates_dir / "commands"
+        if agents_src.exists():
+            for file in agents_src.glob("*.md"):
+                shutil.copy2(file, agents_dest / file.name)
+                print_success(f"Copied agent: {file.name}")
 
-    if commands_src.exists():
-        for file in commands_src.glob("*.md"):
-            shutil.copy2(file, commands_dest / file.name)
-            print_success(f"Copied command: {file.name}")
+        # Copy commands for selected mode
+        commands_dest = ide_dir / "commands"
+        commands_dest.mkdir(exist_ok=True)
+        commands_src = mode_templates_dir / "commands"
 
-    # Create/update settings.local.json
-    create_or_update_settings(claude_dir)
+        if commands_src.exists():
+            for file in commands_src.glob("*.md"):
+                shutil.copy2(file, commands_dest / file.name)
+                print_success(f"Copied command: {file.name}")
+
+        # Create/update settings.local.json
+        create_or_update_settings(ide_dir)
+
+        # Copy instructions.md to project root as CLAUDE.md
+        instructions_src = templates_dir / "instructions.md"
+        instructions_dest = cwd / "CLAUDE.md"
+        if instructions_src.exists() and not instructions_dest.exists():
+            shutil.copy2(instructions_src, instructions_dest)
+            print_success("Copied instructions to CLAUDE.md in project root")
+        elif instructions_dest.exists():
+            print_warning("CLAUDE.md already exists, skipping")
+
+    else:  # codebuddy
+        # Create .codebuddy directory structure
+        ide_dir = cwd / ".codebuddy"
+        ide_dir.mkdir(exist_ok=True)
+
+        # Copy and convert agents for selected mode
+        agents_dest = ide_dir / "agents"
+        agents_dest.mkdir(exist_ok=True)
+        agents_src = mode_templates_dir / "agents"
+
+        if agents_src.exists():
+            for file in agents_src.glob("*.md"):
+                dest_file = agents_dest / file.name
+                convert_agent_to_codebuddy(file, dest_file)
+                print_success(f"Converted agent: {file.name}")
+
+        # Copy and convert commands to rules for selected mode
+        rules_dest = ide_dir / "rules"
+        rules_dest.mkdir(exist_ok=True)
+        commands_src = mode_templates_dir / "commands"
+
+        if commands_src.exists():
+            for file in commands_src.glob("*.md"):
+                # Convert .md to .mdc for CodeBuddy rules
+                dest_file = rules_dest / (file.stem + ".mdc")
+                convert_command_to_rule(file, dest_file)
+                print_success(f"Converted command to rule: {file.stem}.mdc")
+
+        # Copy instructions.md to project root as CODEBUDDY.md
+        instructions_src = templates_dir / "instructions.md"
+        instructions_dest = cwd / "CODEBUDDY.md"
+        if instructions_src.exists() and not instructions_dest.exists():
+            shutil.copy2(instructions_src, instructions_dest)
+            print_success("Copied instructions to CODEBUDDY.md in project root")
+        elif instructions_dest.exists():
+            print_warning("CODEBUDDY.md already exists, skipping")
 
     # Create .learning directory structure
     learning_dir = cwd / ".learning"
@@ -243,13 +377,14 @@ def init_project() -> None:
     # Create config.json with initialization flag
     config = {
         "initialized": True,
+        "ide": ide_choice,
         "learning_mode": learning_mode,
         "macos_reminders_enabled": macos_reminders
     }
     config_path = learning_dir / "config.json"
     with open(config_path, "w") as f:
         json.dump(config, f, indent=2)
-    print_success(f"Created config.json (Mode: {mode_names[learning_mode]}, macOS Reminders: {'enabled' if macos_reminders else 'disabled'})")
+    print_success(f"Created config.json (IDE: {ide_names[ide_choice]}, Mode: {mode_names[learning_mode]}, macOS Reminders: {'enabled' if macos_reminders else 'disabled'})")
 
     # Copy scripts
     scripts_dest = learning_dir / "scripts"
@@ -269,26 +404,23 @@ def init_project() -> None:
             shutil.copy2(file, references_dest / file.name)
             print_success(f"Copied reference: {file.name}")
 
-    # Copy instructions.md to project root as CLAUDE.md
-    instructions_src = templates_dir / "instructions.md"
-    claude_md_dest = cwd / "CLAUDE.md"
-    if instructions_src.exists() and not claude_md_dest.exists():
-        shutil.copy2(instructions_src, claude_md_dest)
-        print_success("Copied instructions to CLAUDE.md in project root")
-    elif claude_md_dest.exists():
-        print_warning("CLAUDE.md already exists, skipping")
-
     print(f"\n{Colors.GREEN}{Colors.BOLD}Initialization complete!{Colors.RESET}\n")
 
-    print_header("Available commands in Claude Code:")
-    print(f"  {Colors.CYAN}/learn [topic]{Colors.RESET}    - Initialize or continue learning")
-    print(f"  {Colors.CYAN}/review{Colors.RESET}           - Spaced repetition review session")
-    print(f"  {Colors.CYAN}/progress{Colors.RESET}         - Show detailed progress report")
+    if ide_choice == "claude":
+        print_header("Available commands in Claude Code:")
+        print(f"  {Colors.CYAN}/learn [topic]{Colors.RESET}    - Initialize or continue learning")
+        print(f"  {Colors.CYAN}/review{Colors.RESET}           - Spaced repetition review session")
+        print(f"  {Colors.CYAN}/progress{Colors.RESET}         - Show detailed progress report")
+    else:
+        print_header("Available in CodeBuddy:")
+        print(f"  {Colors.CYAN}Rules:{Colors.RESET}            - learn.mdc, review.mdc, progress.mdc")
+        print(f"  {Colors.CYAN}Agents:{Colors.RESET}           - Practice Creator agent")
+        print(f"  {Colors.DIM}(Rules are available in the CodeBuddy rules panel){Colors.RESET}")
     print()
 
 
-def launch_coach(auto_review: bool = False) -> None:
-    """Launch Claude Code with learn-faster system prompt."""
+def launch_coach(auto_review: bool = False, ide: str = "claude") -> None:
+    """Launch Claude Code or CodeBuddy with learn-faster system prompt."""
     import subprocess
 
     # Get the learning mode from config
@@ -331,22 +463,32 @@ def launch_coach(auto_review: bool = False) -> None:
 
     system_prompt = "".join(content_lines).strip()
 
-    # Launch Claude Code with the system prompt
-    print_info("Launching Claude Code in learning coach mode...")
-    print_dim("(Using FASTER framework system prompt)\n")
+    if ide == "claude":
+        # Launch Claude Code with the system prompt
+        print_info("Launching Claude Code in learning coach mode...")
+        print_dim("(Using FASTER framework system prompt)\n")
 
-    # Build command with optional /review prefix
-    cmd = ["claude", "--system-prompt", system_prompt]
-    if auto_review:
-        cmd.extend(["/review"])
+        # Build command with optional /review prefix
+        cmd = ["claude", "--system-prompt", system_prompt]
+        if auto_review:
+            cmd.extend(["/review"])
 
-    try:
-        subprocess.run(cmd, check=False)
-    except FileNotFoundError:
-        print_error("Error: 'claude' command not found")
-        print_dim("Make sure Claude Code CLI is installed and in your PATH")
-        print_dim("Install from: https://claude.ai/download")
-        sys.exit(1)
+        try:
+            subprocess.run(cmd, check=False)
+        except FileNotFoundError:
+            print_error("Error: 'claude' command not found")
+            print_dim("Make sure Claude Code CLI is installed and in your PATH")
+            print_dim("Install from: https://claude.ai/download")
+            sys.exit(1)
+    else:
+        # CodeBuddy - just print instructions since it's IDE-based
+        print_info("CodeBuddy is ready!")
+        print_dim("Open your project in CodeBuddy IDE to start learning.\n")
+        print_header("To start learning:")
+        print(f"  1. Open this project folder in CodeBuddy")
+        print(f"  2. The rules (learn, review, progress) are available in the Rules panel")
+        print(f"  3. Use the Practice Creator agent for exercises")
+        print()
 
 
 def main() -> None:
@@ -365,9 +507,13 @@ def main() -> None:
         elif command in ["help", "--help", "-h"]:
             print("Learn FASTER - Accelerate learning with FASTER framework\n")
             print("Usage:")
-            print("  learn-faster           Auto-init and launch Claude Code in coach mode")
+            print("  learn-faster           Auto-init and launch in coach mode")
             print("  learn-faster init      Force re-initialization")
             print("  learn-faster version   Show version")
+            print()
+            print("Supported IDEs:")
+            print("  - Claude Code (Anthropic)")
+            print("  - CodeBuddy (Tencent)")
             print()
             print("For more info: https://github.com/cheukyin175/learn-faster-kit")
             return
@@ -377,18 +523,29 @@ def main() -> None:
             sys.exit(1)
 
     # Default behavior: check init, then launch
-    if not check_initialization():
+    initialized, ide = check_initialization()
+    if not initialized:
         print_info("First-time setup detected. Initializing...")
         print()
         init_project()
         print()
-        print_header("Launching Claude Code with FASTER framework...")
-        print()
-        launch_coach(auto_review=False)
+        # Re-read config to get IDE choice
+        _, ide = check_initialization()
+        ide = ide or "claude"
+        if ide == "claude":
+            print_header("Launching Claude Code with FASTER framework...")
+            print()
+            launch_coach(auto_review=False, ide=ide)
+        else:
+            launch_coach(auto_review=False, ide=ide)
     else:
-        print_info("Launching Claude Code in learning coach mode...")
-        print_dim("(Starting with /review to check for due reviews)\n")
-        launch_coach(auto_review=True)
+        ide = ide or "claude"
+        if ide == "claude":
+            print_info("Launching Claude Code in learning coach mode...")
+            print_dim("(Starting with /review to check for due reviews)\n")
+            launch_coach(auto_review=True, ide=ide)
+        else:
+            launch_coach(auto_review=False, ide=ide)
 
 
 if __name__ == "__main__":
