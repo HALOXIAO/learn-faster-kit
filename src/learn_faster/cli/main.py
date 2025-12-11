@@ -146,35 +146,6 @@ def create_or_update_settings(claude_dir: Path) -> None:
         json.dump(settings, f, indent=2)
 
 
-def convert_agent_to_codebuddy(source_file: Path, dest_file: Path) -> None:
-    """Convert Claude Code agent format to CodeBuddy format with frontmatter."""
-    with open(source_file, "r", encoding="utf-8") as f:
-        content = f.read()
-
-    # Extract name from filename (e.g., practice-creator.md -> Practice Creator)
-    name = source_file.stem.replace("-", " ").title()
-
-    # Check if already has frontmatter
-    if content.startswith("---"):
-        # Already has frontmatter, just copy
-        shutil.copy2(source_file, dest_file)
-        return
-
-    # Add CodeBuddy frontmatter
-    frontmatter = f"""---
-name: {name}
-description: Learn FASTER - {name}
-model: claude-sonnet-4-20250514
-tools: list_files, search_file, search_content, read_file, read_lints, replace_in_file, write_to_file, execute_command, create_rule, delete_files
-agentMode: agentic
-enabled: true
-enabledAutoRun: true
----
-"""
-    with open(dest_file, "w", encoding="utf-8") as f:
-        f.write(frontmatter + content)
-
-
 
 
 
@@ -301,22 +272,21 @@ def init_project() -> None:
             print_warning("CLAUDE.md already exists, skipping")
 
     else:  # codebuddy
-        # Create .codebuddy directory structure
+        # Create .codebuddy directory structure (same as Claude Code, just different directory)
         ide_dir = cwd / ".codebuddy"
         ide_dir.mkdir(exist_ok=True)
 
-        # Copy and convert agents for selected mode
+        # Copy agents for selected mode
         agents_dest = ide_dir / "agents"
         agents_dest.mkdir(exist_ok=True)
         agents_src = mode_templates_dir / "agents"
 
         if agents_src.exists():
             for file in agents_src.glob("*.md"):
-                dest_file = agents_dest / file.name
-                convert_agent_to_codebuddy(file, dest_file)
-                print_success(f"Converted agent: {file.name}")
+                shutil.copy2(file, agents_dest / file.name)
+                print_success(f"Copied agent: {file.name}")
 
-        # Copy commands for selected mode (same as Claude Code, with learnfaster. prefix)
+        # Copy commands for selected mode (with learnfaster. prefix)
         commands_dest = ide_dir / "commands"
         commands_dest.mkdir(exist_ok=True)
         commands_src = mode_templates_dir / "commands"
