@@ -11,9 +11,8 @@ import shutil
 import platform
 import inquirer
 import json
-from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Optional
 
 
 # ANSI color codes
@@ -176,39 +175,7 @@ enabledAutoRun: true
         f.write(frontmatter + content)
 
 
-def convert_command_to_rule(source_file: Path, dest_file: Path) -> None:
-    """Convert Claude Code command format to CodeBuddy rule (.mdc) format."""
-    with open(source_file, "r", encoding="utf-8") as f:
-        content = f.read()
 
-    # Extract description from first line or filename
-    lines = content.strip().split("\n")
-    description = ""
-    if lines and lines[0].startswith("#"):
-        description = lines[0].lstrip("#").strip()
-    else:
-        description = source_file.stem.replace("-", " ").title()
-
-    # Check if already has frontmatter
-    if content.startswith("---"):
-        # Extract content after frontmatter
-        parts = content.split("---", 2)
-        if len(parts) >= 3:
-            content = parts[2].strip()
-
-    # Add CodeBuddy rule frontmatter
-    timestamp = datetime.now().isoformat(timespec="milliseconds") + "Z"
-    frontmatter = f"""---
-description: {description}
-alwaysApply: false
-enabled: true
-updatedAt: {timestamp}
-provider: learn-faster
----
-
-"""
-    with open(dest_file, "w", encoding="utf-8") as f:
-        f.write(frontmatter + content)
 
 
 def check_initialization() -> tuple[bool, Optional[str]]:
@@ -349,17 +316,17 @@ def init_project() -> None:
                 convert_agent_to_codebuddy(file, dest_file)
                 print_success(f"Converted agent: {file.name}")
 
-        # Copy and convert commands to rules for selected mode
-        rules_dest = ide_dir / "rules"
-        rules_dest.mkdir(exist_ok=True)
+        # Copy commands for selected mode (same as Claude Code, with learnfaster. prefix)
+        commands_dest = ide_dir / "commands"
+        commands_dest.mkdir(exist_ok=True)
         commands_src = mode_templates_dir / "commands"
 
         if commands_src.exists():
             for file in commands_src.glob("*.md"):
-                # Convert .md to .mdc for CodeBuddy rules
-                dest_file = rules_dest / (file.stem + ".mdc")
-                convert_command_to_rule(file, dest_file)
-                print_success(f"Converted command to rule: {file.stem}.mdc")
+                # Add learnfaster. prefix to command files
+                dest_file = commands_dest / f"learnfaster.{file.name}"
+                shutil.copy2(file, dest_file)
+                print_success(f"Copied command: learnfaster.{file.name}")
 
         # Copy instructions.md to project root as CODEBUDDY.md
         instructions_src = templates_dir / "instructions.md"
@@ -412,10 +379,11 @@ def init_project() -> None:
         print(f"  {Colors.CYAN}/review{Colors.RESET}           - Spaced repetition review session")
         print(f"  {Colors.CYAN}/progress{Colors.RESET}         - Show detailed progress report")
     else:
-        print_header("Available in CodeBuddy:")
-        print(f"  {Colors.CYAN}Rules:{Colors.RESET}            - learn.mdc, review.mdc, progress.mdc")
-        print(f"  {Colors.CYAN}Agents:{Colors.RESET}           - Practice Creator agent")
-        print(f"  {Colors.DIM}(Rules are available in the CodeBuddy rules panel){Colors.RESET}")
+        print_header("Available commands in CodeBuddy:")
+        print(f"  {Colors.CYAN}/learnfaster.learn [topic]{Colors.RESET}    - Initialize or continue learning")
+        print(f"  {Colors.CYAN}/learnfaster.review{Colors.RESET}           - Spaced repetition review session")
+        print(f"  {Colors.CYAN}/learnfaster.progress{Colors.RESET}         - Show detailed progress report")
+        print(f"  {Colors.CYAN}Agents:{Colors.RESET}                       - Practice Creator agent")
     print()
 
 
@@ -486,7 +454,7 @@ def launch_coach(auto_review: bool = False, ide: str = "claude") -> None:
         print_dim("Open your project in CodeBuddy IDE to start learning.\n")
         print_header("To start learning:")
         print(f"  1. Open this project folder in CodeBuddy")
-        print(f"  2. The rules (learn, review, progress) are available in the Rules panel")
+        print(f"  2. Use /learnfaster.learn, /learnfaster.review, /learnfaster.progress commands")
         print(f"  3. Use the Practice Creator agent for exercises")
         print()
 
